@@ -1,3 +1,13 @@
+"""The program as a whole takes is intended to take a list of strings representing Hack Assembly language, 
+process them, and output information to the user (Binary representation, symbol table, RAM addresses, etc.)"""
+
+"""The variables used by this program:
+currentRam: int, should be 0 to start
+label: list of strings, should start empty
+nextLabel: integer, should be 16 to start
+labelCoOrds: list of integers, should start empty
+originalCode: list of strings to be processed by the program, can be changed by the user. Should represent Hack Assembly 
+Code for this program to function as intended"""
 #Value increments for each cycle through the program. Simulates PC incrementing
 currentRam = 0
 #Stores labels for the label table
@@ -10,11 +20,13 @@ labelCoOrds = []
 originalCode= ["(START)","    @  tri a   l", "D = M", "@300", "A=  D+M", "@trial", "M=A", "@120", "A=M+1", "M=A-1", 
                "@newvariable", "M=1", "@301", "D; JGT", "(END)", "@START", "@trial"]  
 
+"""Takes input string (code) and returns a string (code)"""
 #Removes all whitespace from inputted code and returns only the characters
 def breakDownCode(code):
     code = "".join(code.split())
     return code
     
+"""Takes input string (code) and returns an integer (OpCode)"""
 def isAOrC(code):
     #Checks if the first character is @ or the first and last character are parenthesis to evaluate instruction type
     if code[0] =='@' or (code[0] == '(' and code[-1]== ')'):
@@ -25,6 +37,8 @@ def isAOrC(code):
         OpCode = 111
     return OpCode
 
+"""Takes an input string (code) and returns an integer (1 or 0). The output is to be used as a condition parameter in a 
+boolean function"""
 def checkAIns(code):
     #Checks A instructions to see if they directly reference a memory address (integer), or need to be stored as label
     if isAOrC(code) == 0:
@@ -39,10 +53,13 @@ def checkAIns(code):
             return 0    
     return 0
 
+"""Takes an input string (code) and prints a message to the screen"""
 #Notifies the user targeted by A instruction
 def aNotLabel(code):
     print("A-Instruction is pointing to RAM[" + code[1::]+ "]")
-
+    
+"""Takes an input string (formattedCode), integer (labelValue), and integer (currentRam). Returns an integer 
+(labelValue). Either returns this variable incremented, or the value inputted"""
 def updateLabels(formattedCode, labelValue, currentRam):
 
     #Checks the Opcode to see if the symbol table needs updating
@@ -131,6 +148,7 @@ jumpConditions = ({
     "JMP": "111"
 })
 
+"""Takes input string (code) and outputs a string which is the binary representation of the inputted code"""
 #Processes C-Instructions
 def handleCIns(code):
     for i in code:
@@ -156,7 +174,6 @@ def handleCIns(code):
         #Uses the above values along with the dictionaries to return the binary equivalent of the assembly code
         return("111" + computations[comp] + "000" + jumpConditions[jump])
         
-       
 #MAIN PROGRAM
 #iterates for every entry in the list of inputs
 for i in range(len(originalCode)):
@@ -195,3 +212,4 @@ print("RAM[@]      SYMBOL")
 #For loop which prints values from labels and labelCoOrds
 for i in range(len(labels)):
     print(str(labelCoOrds[i]) +"          " + labels[i])
+
