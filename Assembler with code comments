@@ -1,0 +1,197 @@
+#Value increments for each cycle through the program. Simulates PC incrementing
+currentRam = 0
+#Stores labels for the label table
+labels = []
+#Value to be stored with associated addresses for the symbol table
+nextLabel= 16
+#Stores addresses for symbol table
+labelCoOrds = []
+#Input list of commands
+originalCode= ["(START)","    @  tri a   l", "D = M", "@300", "A=  D+M", "@trial", "M=A", "@120", "A=M+1", "M=A-1", 
+               "@newvariable", "M=1", "@301", "D; JGT", "(END)", "@START", "@trial"]  
+
+#Removes all whitespace from inputted code and returns only the characters
+def breakDownCode(code):
+    code = "".join(code.split())
+    return code
+    
+def isAOrC(code):
+    #Checks if the first character is @ or the first and last character are parenthesis to evaluate instruction type
+    if code[0] =='@' or (code[0] == '(' and code[-1]== ')'):
+        #Returns 0 if condition is met
+        OpCode = 0
+    else:
+        #Returns 111 if condition is not met
+        OpCode = 111
+    return OpCode
+
+def checkAIns(code):
+    #Checks A instructions to see if they directly reference a memory address (integer), or need to be stored as label
+    if isAOrC(code) == 0:
+        #Uses try so the integer comparison wont cause the program to terminate on an error
+        try:
+            #Checks the code only holds an integer value after the @
+            if int(code[1::]) >=1:
+                #Returns 1 if so
+                return 1        
+    #Returns 0 in any situation other than above
+        except:
+            return 0    
+    return 0
+
+#Notifies the user targeted by A instruction
+def aNotLabel(code):
+    print("A-Instruction is pointing to RAM[" + code[1::]+ "]")
+
+def updateLabels(formattedCode, labelValue, currentRam):
+
+    #Checks the Opcode to see if the symbol table needs updating
+    if(isAOrC(formattedCode) ==0):
+        #Checks if is referencing a value which is already in the table, or if the table should be updated
+        if(formattedCode not in labels):
+            if(formattedCode[0]=="@" and formattedCode[1::] not in labels):
+                    #Updates the symbol table if necessary
+                    labels.append(formattedCode[1::])
+                    labelCoOrds.append(labelValue)
+                    print("Variable @" + formattedCode[1::]+ " added to table (@RAM[" + str(nextLabel)+"])")
+                    #Increments and returns label value, so that the next update will fall in the subsequent address
+                    labelValue +=1
+                    return labelValue
+            #Checks if is referencing a value which is already in the table, or if the table should be updated
+            elif (formattedCode[0]=="(" and formattedCode[-1] == ")"):
+                if(formattedCode[1:-1] not in labels):
+                    #Updates the label table if necessary (with current RAM value, labelValue is not touched)
+                    labels.append(formattedCode[1:-1])
+                    labelCoOrds.append(currentRam)
+                    print("Variable (" + formattedCode[1:-1]+ ") added to table (@RAM[" + str(currentRam)+"])")
+                
+                
+        #Checks if label already exists in table and informs user of the label name and its associated address
+        for i in range(len(labels)):
+            if formattedCode[1::] == labels[i]:
+                print("Variable is already present in table: " + formattedCode[1::] + " (@RAM[" + str(labelCoOrds[i])+"])")
+
+    #Returns the labelValue    
+    return labelValue
+    
+#Key : value pairs (dictionary) for computations
+computations = ({
+    "0" : "0101010",
+    "1" : "0111111",
+    "-1": "0111010",
+    "D" : "0001100",
+    "A" : "0110000",
+    "!D": "0001101",
+    "!A": "0110001",
+    "-D": "0001111",
+    "-A": "0110011",
+    "D+1": "0011111",
+    "A+1": "0110111",
+    "D-1": "0001110",
+    "A-1": "0110010",
+    "D+A": "0000010",
+    "D-A": "0010011",
+    "A-D": "0000111",
+    "D&A": "0000000",
+    "D|A": "0010101",
+    "M": "1110000",
+    "!M": "1110001",
+    "-M": "1110011",
+    "M+1": "1110111",
+    "M-1": "1110010",
+    "D+M": "1000010",
+    "D-M": "1010011",
+    "M-D": "1000111",
+    "D&M": "1000000",
+    "D|M":"1010101"    
+})
+
+#Key : value pairs (dictionary) for destinations
+destinations = ({
+    " " : "000",
+    "M" : "001",
+    "D" : "010",
+    "MD": "011",
+    "A" : "100",
+    "AM": "101",
+    "AD": "110",
+    "AMD": "111"    
+})
+
+#Key : value pairs (dictionary) for jump conditions
+jumpConditions = ({
+    
+    " " : "000",
+    "JGT": "001",
+    "JEQ": "010",
+    "JGE": "011",
+    "JLT": "100",
+    "JNE": "101",
+    "JLE": "110",
+    "JMP": "111"
+})
+
+#Processes C-Instructions
+def handleCIns(code):
+    for i in code:
+        #Checks for = (computation), or ; (jump), and assigns a boolean based on the comparison
+        if i == "=":
+            computation = True
+        if i== ";":
+            computation = False
+    #Occurs if code is a computation
+    if computation:
+        #Separates the code on either side of the = and stores each in a variable
+        code = code.split("=")
+        destination = code[0]
+        operation = code[1]
+        #Uses the above values along with the dictionaries to return the binary equivalent of the assembly code
+        return("111"+computations[operation] + destinations[destination] + jumpConditions[" "])
+    #Occurs if code is a jump
+    elif not computation:
+        #Separates the code on either side of the ; and stores each in a variable
+        code = code.split(";")
+        comp = code[0]
+        jump = code[1]
+        #Uses the above values along with the dictionaries to return the binary equivalent of the assembly code
+        return("111" + computations[comp] + "000" + jumpConditions[jump])
+        
+       
+#MAIN PROGRAM
+#iterates for every entry in the list of inputs
+for i in range(len(originalCode)):
+    #Stores the value of calling breakDownCode on the current element in formatted code
+    formattedCode = breakDownCode(originalCode[i])
+    #Stores the value of calling isAOrC on the formatted code in OpCode
+    OpCode = isAOrC(formattedCode)
+    #Checks if the OpCode = 0 (Current code is an A-instruction)
+    if OpCode ==0:
+        #Calls checkAIns and stores returned value in needsLabel variable
+        needsLabel = checkAIns(formattedCode)
+        #Occurs if needsLabel is zero (assigned by our function above)
+        if needsLabel == 0:
+            #Updates nextLabel by calling the function updateLabels (since this returns our incremented value)
+            nextLabel = updateLabels(formattedCode, nextLabel, currentRam)
+        #Occurs if needsLabel is not a zero
+        else:
+            #Calls aNotLabel on the formatted code
+            aNotLabel(formattedCode)
+    #Occurs if OpCode is 111
+    if OpCode ==111:
+        #Stores the value returned by calling handleCIns fucntion on formatted code in the variable cBinary
+        cBinary= handleCIns(formattedCode)
+        #Informs the user of the inputted instruction in assembly language, as well as its binary equivalent
+        print("Binary for C-Instruction: " + formattedCode + " is:  "+ cBinary)
+    #increments the currentRam value
+    currentRam +=1
+
+#Prints some empty strings for spacing after our loop has finished
+print()
+print()
+#Heading for symbol table
+print("SYMBOL TABLE:")
+#Column titles for symbol table
+print("RAM[@]      SYMBOL")
+#For loop which prints values from labels and labelCoOrds
+for i in range(len(labels)):
+    print(str(labelCoOrds[i]) +"          " + labels[i])
